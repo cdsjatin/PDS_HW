@@ -1,0 +1,139 @@
+% Contains the code for lee and seung 
+% also top 10 rank terms for 
+% initialization with random and nndsvd
+clear all;
+close all;
+term = importdata('terms.mat')';
+mat = importdata('bbc.mat');
+k = 5 % number of terms
+max_x = max(mat,[],2);
+max_y = max(mat,[],1);
+[m,n] = size(mat);
+figure;
+subplot(2,3,1)
+spy(mat);
+title('Given matrix:');
+%% Random Matrix generation using max of column of matrix
+for i=1:m
+W(i,:) = randi(max_x(i,1),1,k);
+end
+for j=1:n
+H(:,j) = randi(max_y(1,j),k,1) ;
+end
+
+%% NMF inbuilt function using multiplicative update algorithm
+tic
+[w,h] = nnmf(mat,k,'alg','mult','w0',W);
+time = toc
+for i = 1:5
+[~,idx] = sort(w(:,i),'descend');
+term(idx(1:10))
+
+end
+norm(X-w*h,'fro');
+subplot(2,3,2)
+spy(w*h);
+title(sprintf('NMF Lee seung,time:%f,norm: %f',time,norm(X-w*h,'fro')));
+%% NMF using 2 norm minimization of W and H
+% with random initialization
+tau = 10                      % initialize tau
+disp('modified lee seung with random running......')
+tic;
+for i = 1:100
+    
+   W_t = W*(H*H')+tau*W;    %W_t temporary
+   n = W./W_t;              % represents eeta
+   q = mat*H';              % temp variable
+   W = n.*q;                
+   
+   H_t = (W'*W)*H + tau*H;
+   n = H./H_t;
+   q = W'*mat;
+   H = n.*q;
+
+end
+subplot(2,3,3)
+spy(W*H);
+title(sprintf('NMF using 2 norm minimization, time: %f,norm: %f', toc,norm(mat-W*H,'fro')));
+
+%% NMF using 2 norm minimization of W and H
+% using nndsvd initialization 
+% NNDSVD.m file is taken from 
+%https://github.com/trigeorgis/Deep-Semi-NMF/blob/master/matlab/NNDSVD.m
+X = mat;
+disp('modified lee seung with NDSVD running......')
+[W,H] = NNDSVD(X,k,1);
+tic;
+for i = 1:100
+    
+   W_t = W*(H*H')+tau*W;    %W_t temporary
+   n = W./W_t;              % represents eeta
+   q = mat*H';              % temp variable
+   W = n.*q;                
+   
+   H_t = (W'*W)*H + tau*H;
+   n = H./H_t;
+   q = W'*mat;
+   H = n.*q;
+
+end
+time = toc
+norm_  = norm(mat-W*H,'fro')
+figure
+spy(W*H)
+%% Random Matrix generation using max of column of matrix
+for i=1:m
+W(i,:) = randi(max_x(i,1),1,k);
+end
+for j=1:n
+H(:,j) = randi(max_y(1,j),k,1) ;
+end
+
+%% NMF using l1 norm 
+% using random 
+tau = 10;
+disp('NMF l1 norm part 2 using random running....');
+
+tic
+for i = 1:100
+    
+    W_t = W*H*H' + tau*(sign(W));
+    n = W./W_t;
+    q = (mat*H');
+    W = n.*q;
+    
+   H_t = (W'*W)*H + tau*(sign(H));
+   n = H./H_t;
+   q = W'*mat;
+   H = n.*q;
+   
+end
+time = toc
+nomr_ = norm(mat-W*H,'fro')
+figure;
+spy(W*H)
+%% NMF using l1 norm
+% using NNDSVD
+tau = 10
+disp('NMF l1 norm part 2 using NNDSVD running...')
+[W,H] = NNDSVD(mat,k,1);
+tic
+for i = 1:100
+    
+   W_t = W*H*H' + tau*(sign(W));
+   n = W./W_t;
+   q = (mat*H');
+   W = n.*q;
+    
+   H_t = (W'*W)*H + tau*(sign(H));
+   n = H./H_t;
+   q = W'*mat;
+   H = n.*q;
+   
+end
+time = toc
+nomr_ = norm(mat-W*H,'fro')
+figure;
+spy(W*H)
+%% NMF using divergence 
+% using random initialization

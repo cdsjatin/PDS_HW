@@ -1,0 +1,69 @@
+
+%% Incremental SVD
+% input : Sample data , tolerance , Max iteration
+% output : Z approx matrix, and images for comparison
+close all;
+clear all;
+data = 'fruit.pgm';
+
+X = double(importdata(data));
+percent = [0.1,0.3,0.5]';
+
+[A,B,C] = generateSampleMatrix(X,percent);
+
+Xsample = C;
+tol  = 3;
+kmax = 150;
+%isvd(C,3,150)
+%function Z = isvd(Xsample,tol,kmax)
+
+subplot(2,2,1);
+imshow(uint8(Xsample));
+title(sprintf('Sampled image Rank: %d',rank(Xsample)));
+[m,n] = size(Xsample);
+U = zeros(m,0);
+E = U;
+V = [];
+[U,E,V] = svd(Xsample(:,1));
+c = Xsample(:,1);
+U = [c./norm(c)];
+E = [norm(c)];
+V = [1];
+Z = zeros(size(Xsample));
+count = 0;
+tic
+for k = 2:kmax
+   Z = zeros(size(Xsample)); 
+   c = Xsample(:,k) ;
+   disp(sprintf('%2.3f and %2.3f',rank([U c]),rank(U)));
+    if(rank([U c]) ~= rank(U))
+        w = U\c;
+        r = c - U*w;
+        norm_r = norm(r);
+        U = [U (r./norm_r)];
+        [~,q] = size(E);
+        E = [E w
+             zeros(1,q) norm_r];
+        %w = [w ; norm_r];
+        %E(:,count) = w;
+         [p,q] = size(V);
+         %V(:,count) = e(p,count);
+          V=  [V zeros(p,1)
+                zeros(1,q) 1]; 
+         % Calculate SVD of new diagonal matrix E
+         [Ubar,E,Vbar] = svd(E);
+         U = U*Ubar;
+         V = V*Vbar;
+         count = count + 1;
+    end
+     
+end
+time = toc;
+  Z = U*E*V' ;
+        norm_a(k) = norm(Z,'fro');
+subplot(2,2,3);
+imshow(uint8(Z));
+str = sprintf('Time: %2.5f s & Rank: %d',time,rank(Z));
+title(str);
+
+%end
